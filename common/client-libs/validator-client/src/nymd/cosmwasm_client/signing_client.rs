@@ -1,6 +1,9 @@
 // Copyright 2021 - Nym Technologies SA <contact@nymtech.net>
 // SPDX-License-Identifier: Apache-2.0
 
+use std::convert::TryInto;
+use std::time::{Duration, SystemTime};
+
 use crate::nymd::cosmwasm_client::client::CosmWasmClient;
 use crate::nymd::cosmwasm_client::helpers::{compress_wasm_code, CheckResponse};
 use crate::nymd::cosmwasm_client::logs::{self, parse_raw_logs};
@@ -19,15 +22,13 @@ use cosmrs::proto::cosmos::tx::signing::v1beta1::SignMode;
 use cosmrs::rpc::endpoint::broadcast;
 use cosmrs::rpc::{Error as TendermintRpcError, HttpClient, HttpClientUrl, SimpleRequest};
 use cosmrs::staking::{MsgDelegate, MsgUndelegate};
-use cosmrs::tx::{self, Msg, SignDoc, SignerInfo};
+use cosmrs::tendermint::chain;
+use cosmrs::tx::{self, AccountNumber, Msg, SequenceNumber, SignDoc, SignerInfo};
 use cosmrs::{cosmwasm, rpc, AccountId, Any, Tx};
 use log::debug;
 use serde::Serialize;
 use sha2::Digest;
 use sha2::Sha256;
-use std::convert::TryInto;
-use std::time::{Duration, SystemTime};
-
 const DEFAULT_BROADCAST_POLLING_RATE: Duration = Duration::from_secs(4);
 const DEFAULT_BROADCAST_TIMEOUT: Duration = Duration::from_secs(60);
 
@@ -59,6 +60,8 @@ pub trait SigningCosmWasmClient: CosmWasmClient {
     fn signer(&self) -> &DirectSecp256k1HdWallet;
 
     fn gas_price(&self) -> &GasPrice;
+
+    fn is_offline(&self) -> bool;
 
     fn signer_public_key(&self, signer_address: &AccountId) -> Option<tx::SignerPublicKey> {
         let signer_accounts = self.signer().try_derive_accounts().ok()?;
@@ -725,11 +728,30 @@ pub trait SigningCosmWasmClient: CosmWasmClient {
 
         self.sign_direct(signer_address, messages, fee, memo, signer_data)
     }
+
+    fn offline_sign(
+        &self,
+        signer_address: &AccountId,
+        messages: Vec<Any>,
+        fee: tx::Fee,
+        memo: impl Into<String> + Send + 'static,
+        account_number: AccountNumber,
+        sequence_number: SequenceNumber,
+        chain_id: chain::Id,
+    ) -> Result<tx::Raw, NymdError> {
+        let signer_data = SignerData {
+            account_number: account_number,
+            sequence: sequence_number,
+            chain_id,
+        };
+
+        self.sign_direct(signer_address, messages, fee, memo, signer_data)
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct Client {
-    rpc_client: HttpClient,
+    rpc_client: Option<HttpClient>,
     signer: DirectSecp256k1HdWallet,
     gas_price: GasPrice,
 
@@ -748,12 +770,26 @@ impl Client {
     {
         let rpc_client = HttpClient::new(endpoint)?;
         Ok(Client {
-            rpc_client,
+            rpc_client: Some(rpc_client),
             signer,
             gas_price,
             broadcast_polling_rate: DEFAULT_BROADCAST_POLLING_RATE,
             broadcast_timeout: DEFAULT_BROADCAST_TIMEOUT,
         })
+    }
+
+    pub fn offline_signer(signer: DirectSecp256k1HdWallet, gas_price: GasPrice) -> Self {
+        Client {
+            rpc_client: None,
+            signer,
+            gas_price,
+            broadcast_polling_rate: DEFAULT_BROADCAST_POLLING_RATE,
+            broadcast_timeout: DEFAULT_BROADCAST_TIMEOUT,
+        }
+    }
+
+    pub fn is_offline(&self) -> bool {
+        self.rpc_client.is_none()
     }
 
     pub fn set_broadcast_polling_rate(&mut self, broadcast_polling_rate: Duration) {
@@ -771,7 +807,11 @@ impl rpc::Client for Client {
     where
         R: SimpleRequest,
     {
-        self.rpc_client.perform(request).await
+        self.rpc_client
+            .as_ref()
+            .expect("Cannot use offline signer to perform actions.")
+            .perform(request)
+            .await
     }
 }
 
@@ -794,5 +834,9 @@ impl SigningCosmWasmClient for Client {
 
     fn gas_price(&self) -> &GasPrice {
         &self.gas_price
+    }
+
+    fn is_offline(&self) -> bool {
+        self.rpc_client.is_none()
     }
 }

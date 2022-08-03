@@ -60,7 +60,7 @@ export const DelegateModal: React.FC<{
   const [amount, setAmount] = useState<string | undefined>(initialAmount);
   const [isValidated, setValidated] = useState<boolean>(false);
   const [errorAmount, setErrorAmount] = useState<string | undefined>();
-  const [tokenPool, setTokenPool] = useState<TPoolOption>('balance');
+  const [token_pool, setTokenPool] = useState<TPoolOption>('balance');
   const [errorIdentityKey, setErrorIdentityKey] = useState<string>();
 
   const { fee, getFee, resetFeeState, feeError } = useGetFee();
@@ -123,18 +123,18 @@ export const DelegateModal: React.FC<{
   };
 
   const handleConfirm = async ({ identity, value }: { identity: string; value: DecCoin }) => {
-    const hasEnoughTokens = await checkTokenBalance(tokenPool, value.amount);
+    const hasEnoughTokens = await checkTokenBalance(token_pool, value.amount);
 
     if (!hasEnoughTokens) {
       setErrorAmount('Not enough funds');
       return;
     }
 
-    if (tokenPool === 'balance') {
+    if (token_pool === 'balance') {
       getFee(simulateDelegateToMixnode, { identity, amount: value });
     }
 
-    if (tokenPool === 'locked') {
+    if (token_pool === 'locked') {
       getFee(simulateVestingDelegateToMixnode, { identity, amount: value });
     }
   };

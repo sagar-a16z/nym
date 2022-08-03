@@ -21,7 +21,7 @@ export type TDelegationContext = {
   refresh: () => Promise<void>;
   addDelegation: (
     data: { identity: string; amount: DecCoin },
-    tokenPool: TPoolOption,
+    token_pool: TPoolOption,
     fee?: FeeDetails,
   ) => Promise<TransactionExecuteResult>;
   undelegate: (
@@ -64,13 +64,13 @@ export const DelegationContextProvider: FC<{
 
   const addDelegation = async (
     data: { identity: string; amount: DecCoin },
-    tokenPool: TPoolOption,
+    token_pool: TPoolOption,
     fee?: FeeDetails,
   ) => {
     try {
       let tx;
 
-      if (tokenPool === 'locked') tx = await vestingDelegateToMixnode({ ...data, fee });
+      if (token_pool === 'locked') tx = await vestingDelegateToMixnode({ ...data, fee });
       else tx = await delegateToMixnode(data);
 
       return tx;

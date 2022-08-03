@@ -109,13 +109,13 @@ export function removeObjectDuplicates<T extends object, K extends keyof T>(arr:
   return arr.filter((v, i, a) => a.findIndex((v2) => v2[id] === v[id]) === i);
 }
 
-export const checkTokenBalance = async (tokenPool: TPoolOption, amount: string) => {
+export const checkTokenBalance = async (token_pool: TPoolOption, amount: string) => {
   let hasEnoughFunds = false;
-  if (tokenPool === 'locked') {
+  if (token_pool === 'locked') {
     hasEnoughFunds = await checkHasEnoughLockedTokens(amount);
   }
 
-  if (tokenPool === 'balance') {
+  if (token_pool === 'balance') {
     hasEnoughFunds = await checkHasEnoughFunds(amount);
   }
 

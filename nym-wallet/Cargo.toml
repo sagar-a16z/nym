@@ -3,6 +3,7 @@
 resolver = "2"
 members = [
     "src-tauri",
+    "wallet-cli",
     "wallet-recovery-cli",
     "nym-wallet-types"
 ]

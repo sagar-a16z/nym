@@ -15,7 +15,7 @@ import { ConfirmationModal } from './ConfirmationModal';
 
 type TBondFormFields = {
   withAdvancedOptions: boolean;
-  tokenPool: string;
+  token_pool: string;
   ownerSignature: string;
   identityKey: string;
   sphinxKey: string;
@@ -29,7 +29,7 @@ type TBondFormFields = {
 
 const defaultValues = {
   withAdvancedOptions: false,
-  tokenPool: 'balance',
+  token_pool: 'balance',
   identityKey: '',
   sphinxKey: '',
   ownerSignature: '',
@@ -78,16 +78,16 @@ export const GatewayForm = ({
   const watchAdvancedOptions = watch('withAdvancedOptions', defaultValues.withAdvancedOptions);
 
   const handleValidateAndGetFee = async (data: TBondFormFields) => {
-    if (data.tokenPool === 'balance' && !(await checkHasEnoughFunds(data.amount.amount || ''))) {
+    if (data.token_pool === 'balance' && !(await checkHasEnoughFunds(data.amount.amount || ''))) {
       return setError('amount.amount', { message: 'Not enough funds in wallet' });
     }
 
-    if (data.tokenPool === 'locked' && !(await checkHasEnoughLockedTokens(data.amount.amount || ''))) {
+    if (data.token_pool === 'locked' && !(await checkHasEnoughLockedTokens(data.amount.amount || ''))) {
       return setError('amount.amount', { message: 'Not enough locked tokens' });
     }
 
     try {
-      await getFee(data.tokenPool === 'locked' ? simulateVestingBondGateway : simulateBondGateway, {
+      await getFee(data.token_pool === 'locked' ? simulateVestingBondGateway : simulateBondGateway, {
         ownerSignature: data.ownerSignature,
         gateway: {
           identity_key: data.identityKey,
@@ -122,12 +122,12 @@ export const GatewayForm = ({
       fee: fee?.fee,
     };
     try {
-      if (data.tokenPool === 'balance') {
+      if (data.token_pool === 'balance') {
         await bondGateway(payload);
         await userBalance.fetchBalance();
       }
 
-      if (data.tokenPool === 'locked') {
+      if (data.token_pool === 'locked') {
         await vestingBondGateway(payload);
         await userBalance.fetchTokenAllocation();
       }
@@ -199,7 +199,7 @@ export const GatewayForm = ({
 
           {userBalance.originalVesting && (
             <Grid item xs={12} sm={6}>
-              <TokenPoolSelector onSelect={(pool) => setValue('tokenPool', pool)} disabled={disabled} />
+              <TokenPoolSelector onSelect={(pool) => setValue('token_pool', pool)} disabled={disabled} />
             </Grid>
           )}
           <Grid item xs={12} sm={6}>
