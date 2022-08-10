@@ -1,5 +1,5 @@
+use crate::NetworkInfo;
 use clap::Args;
-use network_defaults::NymNetworkDetails;
 use validator_client::nymd::wallet::DirectSecp256k1HdWallet;
 use validator_client::nymd::Coin;
 use validator_client::{Client, Config};
@@ -25,15 +25,21 @@ pub(crate) struct Delegate {
 
 pub(crate) async fn execute(
     args: &Delegate,
-    network_details: NymNetworkDetails,
+    network_info: NetworkInfo,
     wallet: DirectSecp256k1HdWallet,
 ) {
     // setup a client, and look up the account info.
-    let config = Config::try_from_nym_network_details(&network_details).expect("no config");
+    let config =
+        Config::try_from_nym_network_details(&network_info.network_details).expect("no config");
     let offline_signer = Client::new_offline_signing(config, wallet);
     let amount: Coin = Coin {
         amount: args.amount,
-        denom: network_details.chain_details.mix_denom.base.clone(),
+        denom: network_info
+            .network_details
+            .chain_details
+            .mix_denom
+            .base
+            .clone(),
     };
     let result = offline_signer
         .nymd
@@ -76,6 +82,14 @@ mod tests {
         )
         .unwrap();
 
-        execute(&args, SANDBOX.details(), wallet).await;
+        execute(
+            &args,
+            NetworkInfo {
+                network_details: SANDBOX.details(),
+                chain_id: "nym-sandbox".to_string(),
+            },
+            wallet,
+        )
+        .await;
     }
 }

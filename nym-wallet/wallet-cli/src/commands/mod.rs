@@ -33,23 +33,28 @@ pub(crate) enum Commands {
     Balance(balance::Balance), // UnBond(unbond::UnBond),
 }
 
+pub(crate) struct NetworkInfo {
+    pub network_details: NymNetworkDetails,
+    pub chain_id: String,
+}
+
 pub(crate) async fn execute(
     args: Args,
-    network_details: NymNetworkDetails,
+    network_info: NetworkInfo,
     wallet: Option<DirectSecp256k1HdWallet>,
 ) {
     match &args.command {
         Commands::BondOffline(m) => {
-            bond::execute(m, network_details, wallet.expect("Invalid Wallet")).await
+            bond::execute(m, network_info, wallet.expect("Invalid Wallet")).await
         }
-        Commands::AccountSequence(m) => account::execute(m, network_details).await,
-        Commands::SendTransaction(m) => sender::execute(m, network_details).await,
+        Commands::AccountSequence(m) => account::execute(m, network_info).await,
+        Commands::SendTransaction(m) => sender::execute(m, network_info).await,
         Commands::DelegateOffline(m) => {
-            delegate::execute(m, network_details, wallet.expect("Invalid Wallet")).await
+            delegate::execute(m, network_info, wallet.expect("Invalid Wallet")).await
         }
         Commands::UndelegateOffline(m) => {
-            undelegate::execute(m, network_details, wallet.expect("Invalid Wallet")).await
+            undelegate::execute(m, network_info, wallet.expect("Invalid Wallet")).await
         }
-        Commands::Balance(m) => balance::execute(m, network_details).await,
+        Commands::Balance(m) => balance::execute(m, network_info).await,
     }
 }

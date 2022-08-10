@@ -1,5 +1,5 @@
+use crate::NetworkInfo;
 use clap::Args;
-use network_defaults::NymNetworkDetails;
 use validator_client::{Client, Config};
 
 #[derive(Args, Clone)]
@@ -20,9 +20,10 @@ pub(crate) struct Send {
     http_api_port: Option<u16>,
 }
 
-pub(crate) async fn execute(args: &Send, network_details: NymNetworkDetails) {
+pub(crate) async fn execute(args: &Send, network_info: NetworkInfo) {
     // setup a client, and look up the account info.
-    let mut config = Config::try_from_nym_network_details(&network_details).expect("no config");
+    let mut config =
+        Config::try_from_nym_network_details(&network_info.network_details).expect("no config");
     if let Some(host) = &args.host {
         config = config.with_nymd_url(host.parse().expect("couldn't parse host url"));
     }
@@ -55,6 +56,13 @@ mod tests {
             http_api_port: None,
         };
 
-        execute(&args, SANDBOX.details()).await;
+        execute(
+            &args,
+            NetworkInfo {
+                network_details: SANDBOX.details(),
+                chain_id: "nym-sandbox".to_string(),
+            },
+        )
+        .await;
     }
 }

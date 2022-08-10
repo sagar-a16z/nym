@@ -1,7 +1,7 @@
 use crate::commands::{DEFAULT_HTTP_API_PORT, DEFAULT_MIX_PORT, DEFAULT_VERLOC_PORT};
+use crate::NetworkInfo;
 use clap::Args;
 use mixnet_contract_common::MixNode;
-use network_defaults::NymNetworkDetails;
 use validator_client::nymd::wallet::DirectSecp256k1HdWallet;
 use validator_client::nymd::Coin;
 use validator_client::{Client, Config};
@@ -35,10 +35,6 @@ pub(crate) struct Bond {
     /// Account number to use for the offline signature
     #[clap(long)]
     account_number: u64,
-    /// The chain-id (ex: nym, nym-sandbox, etc)
-    #[clap(long)]
-    chain_id: String,
-
     // advanced options
     #[clap(long)]
     mix_port: Option<u16>,
@@ -50,7 +46,7 @@ pub(crate) struct Bond {
 
 pub(crate) async fn execute(
     args: &Bond,
-    network_details: NymNetworkDetails,
+    network_info: NetworkInfo,
     wallet: DirectSecp256k1HdWallet,
 ) {
     println!("Attempt to bond to mixnode {}...", args.identity_key);
@@ -65,14 +61,20 @@ pub(crate) async fn execute(
         profit_margin_percent: args.profit_margin_percent,
     };
 
-    let config = Config::try_from_nym_network_details(&network_details).expect("no config");
+    let config =
+        Config::try_from_nym_network_details(&network_info.network_details).expect("no config");
 
     // TODO support non-offline stuff too...
     let offline_signer = Client::new_offline_signing(config, wallet);
 
     let pledge: Coin = Coin {
         amount: args.pledge_amount,
-        denom: network_details.chain_details.mix_denom.base.clone(),
+        denom: network_info
+            .network_details
+            .chain_details
+            .mix_denom
+            .base
+            .clone(),
     };
     let result = offline_signer
         .nymd
@@ -82,7 +84,7 @@ pub(crate) async fn execute(
             pledge,
             args.account_number,
             args.sequence_number,
-            args.chain_id.parse().expect("Invalid Chain ID"),
+            network_info.chain_id.parse().expect("Invalid Chain ID"),
         )
         .await;
 
@@ -113,7 +115,6 @@ mod tests {
             version: "1.0".to_string(),
             account_number: 360,
             sequence_number: 2,
-            chain_id: "nym-sandbox".to_string(),
             mix_port: None,
             verloc_port: None,
             http_api_port: None,
@@ -124,6 +125,14 @@ mod tests {
         )
         .unwrap();
 
-        execute(&args, SANDBOX.details(), wallet).await;
+        execute(
+            &args,
+            NetworkInfo {
+                network_details: SANDBOX.details(),
+                chain_id: "nym-sandbox".to_string(),
+            },
+            wallet,
+        )
+        .await;
     }
 }

@@ -1,5 +1,5 @@
+use crate::NetworkInfo;
 use clap::Args;
-use network_defaults::NymNetworkDetails;
 use std::str::FromStr;
 use validator_client::nymd::AccountId;
 use validator_client::{Client, Config};
@@ -11,9 +11,10 @@ pub(crate) struct Balance {
     account_id: String,
 }
 
-pub(crate) async fn execute(args: &Balance, network_details: NymNetworkDetails) {
+pub(crate) async fn execute(args: &Balance, network_info: NetworkInfo) {
     // setup a client, and look up the account info.
-    let config = Config::try_from_nym_network_details(&network_details).expect("no config");
+    let config =
+        Config::try_from_nym_network_details(&network_info.network_details).expect("no config");
     let account_id = &args.account_id;
 
     let client = Client::new_query(config).expect("Unable to connect to Mainnet");
@@ -22,7 +23,12 @@ pub(crate) async fn execute(args: &Balance, network_details: NymNetworkDetails) 
         .nymd
         .get_balance(
             &AccountId::from_str(account_id).expect("Invalid account address"),
-            network_details.chain_details.mix_denom.base.clone(),
+            network_info
+                .network_details
+                .chain_details
+                .mix_denom
+                .base
+                .clone(),
         )
         .await;
     match balance {
@@ -32,7 +38,7 @@ pub(crate) async fn execute(args: &Balance, network_details: NymNetworkDetails) 
         Err(error) => {
             println!(
                 "Failed to get balance for denom:{}. Err:{}",
-                network_details.chain_details.mix_denom.base, error
+                network_info.network_details.chain_details.mix_denom.base, error
             )
         }
     }
@@ -49,6 +55,13 @@ mod tests {
             account_id: "nymt129zh9a59lhp87sxf8ax8tljzsz2tn0yg2z0l30".to_string(),
         };
 
-        execute(&args, SANDBOX.details()).await;
+        execute(
+            &args,
+            NetworkInfo {
+                network_details: SANDBOX.details(),
+                chain_id: "nym-sandbox".to_string(),
+            },
+        )
+        .await;
     }
 }

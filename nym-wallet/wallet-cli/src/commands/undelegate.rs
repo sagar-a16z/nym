@@ -1,5 +1,5 @@
+use crate::NetworkInfo;
 use clap::Args;
-use network_defaults::NymNetworkDetails;
 use validator_client::nymd::wallet::DirectSecp256k1HdWallet;
 use validator_client::{Client, Config};
 
@@ -14,18 +14,16 @@ pub(crate) struct Undelegate {
     /// Account number to use for the offline signature
     #[clap(long)]
     account_number: u64,
-    /// The chain-id (ex: nym, nym-sandbox, etc)
-    #[clap(long)]
-    chain_id: String,
 }
 
 pub(crate) async fn execute(
     args: &Undelegate,
-    network_details: NymNetworkDetails,
+    network_info: NetworkInfo,
     wallet: DirectSecp256k1HdWallet,
 ) {
     // setup a client, and look up the account info.
-    let config = Config::try_from_nym_network_details(&network_details).expect("no config");
+    let config =
+        Config::try_from_nym_network_details(&network_info.network_details).expect("no config");
     let offline_signer = Client::new_offline_signing(config, wallet);
     let result = offline_signer
         .nymd
@@ -33,7 +31,7 @@ pub(crate) async fn execute(
             args.mixnode_identity.clone(),
             args.account_number,
             args.sequence_number,
-            args.chain_id.parse().expect("Invalid Chain ID"),
+            network_info.chain_id.parse().expect("Invalid Chain ID"),
         )
         .await;
     match result {
@@ -58,7 +56,6 @@ mod tests {
             mixnode_identity: "".to_string(),
             sequence_number: 0,
             account_number: 450,
-            chain_id: "nym-sandbox".to_string(),
         };
         let wallet = DirectSecp256k1HdWallet::from_mnemonic(
             &SANDBOX.bech32_prefix(),
@@ -66,6 +63,14 @@ mod tests {
         )
         .unwrap();
 
-        execute(&args, SANDBOX.details(), wallet).await;
+        execute(
+            &args,
+            NetworkInfo {
+                network_details: SANDBOX.details(),
+                chain_id: "nym-sandbox".to_string(),
+            },
+            wallet,
+        )
+        .await;
     }
 }

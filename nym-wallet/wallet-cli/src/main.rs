@@ -1,3 +1,4 @@
+use crate::commands::NetworkInfo;
 use clap::{crate_version, Parser};
 use lazy_static::lazy_static;
 use log::LevelFilter;
@@ -5,6 +6,7 @@ use network_defaults::all::Network;
 use network_defaults::all::Network::{MAINNET, QA, SANDBOX};
 use std::fs::File;
 use std::io::{self, prelude::*, BufReader};
+use std::process::exit;
 use validator_client::nymd::wallet::DirectSecp256k1HdWallet;
 
 mod commands;
@@ -38,19 +40,25 @@ async fn main() {
     let args = Args::parse();
     let mut wallet = None;
 
+    let chain_id;
     let network_details;
     match &args.network {
         Network::QA => {
             network_details = QA.details();
+            // TODO Not a real chain_id ?
+            chain_id = "nym-qa";
         }
         Network::SANDBOX => {
             network_details = SANDBOX.details();
+            chain_id = "nym-sandbox";
         }
         Network::MAINNET => {
             network_details = MAINNET.details();
+            chain_id = "nym";
         }
-        Network::CUSTOM { details } => {
-            network_details = details.clone();
+        Network::CUSTOM { details: _ } => {
+            println!("Invalid chain ID specified. Custom Networks are not supported yet.");
+            exit(0);
         }
     }
 
@@ -65,7 +73,15 @@ async fn main() {
         );
     }
 
-    commands::execute(args, network_details, wallet).await;
+    commands::execute(
+        args,
+        NetworkInfo {
+            network_details,
+            chain_id: chain_id.to_string(),
+        },
+        wallet,
+    )
+    .await;
 }
 
 // TODO: Use a utility for this, something that understands what a mnemonic string should look like
