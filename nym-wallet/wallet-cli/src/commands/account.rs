@@ -9,7 +9,7 @@ pub(crate) struct Account {
     /// The host address (where nymd is running)
     #[clap(long)]
     host: Option<String>,
-    /// The accound public key to lookup
+    /// The account public key to lookup
     #[clap(long)]
     account_id: String,
     // advanced options
@@ -22,7 +22,7 @@ pub(crate) struct Account {
 }
 
 pub(crate) async fn execute(args: &Account, network_details: NymNetworkDetails) {
-    // setup a mainnet client, and look up the account info.
+    // setup a client, and look up the account info.
     let mut config = Config::try_from_nym_network_details(&network_details).expect("no config");
     if let Some(host) = &args.host {
         config = config.with_nymd_url(host.parse().expect("couldn't parse host url"));

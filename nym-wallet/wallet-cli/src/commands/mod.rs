@@ -7,9 +7,11 @@ use network_defaults::NymNetworkDetails;
 use validator_client::nymd::wallet::DirectSecp256k1HdWallet;
 
 mod account;
+mod balance;
 mod bond;
+mod delegate;
 mod sender;
-// mod unbond;
+mod undelegate;
 
 static DEFAULT_MIX_PORT: u16 = 1789;
 static DEFAULT_VERLOC_PORT: u16 = 1790;
@@ -23,7 +25,12 @@ pub(crate) enum Commands {
     AccountSequence(account::Account),
     /// Send a signed transaction encoded as a serde_json string
     SendTransaction(sender::Send),
-    // UnBond(unbond::UnBond),
+    /// Delegate tokens to a node
+    DelegateOffline(delegate::Delegate),
+    /// Undelegate tokens from a node
+    UndelegateOffline(undelegate::Undelegate),
+    /// Get the balance and delegations of an account
+    Balance(balance::Balance), // UnBond(unbond::UnBond),
 }
 
 pub(crate) async fn execute(
@@ -37,6 +44,12 @@ pub(crate) async fn execute(
         }
         Commands::AccountSequence(m) => account::execute(m, network_details).await,
         Commands::SendTransaction(m) => sender::execute(m, network_details).await,
-        // Commands::UnBond(m) => unbond::execute(m, wallet),
+        Commands::DelegateOffline(m) => {
+            delegate::execute(m, network_details, wallet.expect("Invalid Wallet")).await
+        }
+        Commands::UndelegateOffline(m) => {
+            undelegate::execute(m, network_details, wallet.expect("Invalid Wallet")).await
+        }
+        Commands::Balance(m) => balance::execute(m, network_details).await,
     }
 }

@@ -20,9 +20,6 @@ pub(crate) struct Bond {
     /// The profit margin percentage this bonding will consume
     #[clap(long)]
     profit_margin_percent: u8,
-    /// The denomination of the pledge being made
-    #[clap(long)]
-    pledge_type: String,
     /// The value of the pledge being made
     #[clap(long)]
     pledge_amount: u128,
@@ -38,6 +35,9 @@ pub(crate) struct Bond {
     /// Account number to use for the offline signature
     #[clap(long)]
     account_number: u64,
+    /// The chain-id (ex: nym, nym-sandbox, etc)
+    #[clap(long)]
+    chain_id: String,
 
     // advanced options
     #[clap(long)]
@@ -72,7 +72,7 @@ pub(crate) async fn execute(
 
     let pledge: Coin = Coin {
         amount: args.pledge_amount,
-        denom: args.pledge_type.clone(),
+        denom: network_details.chain_details.mix_denom.base.clone(),
     };
     let result = offline_signer
         .nymd
@@ -82,13 +82,17 @@ pub(crate) async fn execute(
             pledge,
             args.account_number,
             args.sequence_number,
-            "0".parse().unwrap(),
+            args.chain_id.parse().expect("Invalid Chain ID"),
         )
-        .await
-        .expect("failed to generate tx");
+        .await;
 
-    let json = serde_json::to_string(&result.data).unwrap();
-    println!("Transaction data: {:x?}", json);
+    match result {
+        Ok(response) => {
+            let json = serde_json::to_string(&response.data).unwrap();
+            println!("Bond Transaction: {:x?}", json)
+        }
+        Err(error) => println!("Failed to send transaction with Error: {}", error),
+    }
 }
 
 #[cfg(test)]
@@ -104,12 +108,12 @@ mod tests {
             sphinx_key: "6AtSiDL7MvsDudhqiik6DVsKqyMjLzR5r9kuHewHab1k".to_string(),
             owner_signature: "4zka4Ne4mkmpu93g8ASGLBixYRDqwmRoh55sstW7PeQA5yhToRwKAF8WXpp9M1ekqdDdQMDnguMiTDokeWe96wB2".to_string(),
             profit_margin_percent: 100,
-            pledge_type: "Nymt".to_string(),
             pledge_amount: 1_000_000_000_000,
             host: "192.168.1.1".to_string(),
             version: "1.0".to_string(),
             account_number: 360,
             sequence_number: 2,
+            chain_id: "nym-sandbox".to_string(),
             mix_port: None,
             verloc_port: None,
             http_api_port: None,

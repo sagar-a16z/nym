@@ -21,7 +21,7 @@ pub(crate) struct Send {
 }
 
 pub(crate) async fn execute(args: &Send, network_details: NymNetworkDetails) {
-    // setup a mainnet client, and look up the account info.
+    // setup a client, and look up the account info.
     let mut config = Config::try_from_nym_network_details(&network_details).expect("no config");
     if let Some(host) = &args.host {
         config = config.with_nymd_url(host.parse().expect("couldn't parse host url"));
