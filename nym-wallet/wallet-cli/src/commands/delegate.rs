@@ -18,9 +18,6 @@ pub(crate) struct Delegate {
     /// Account number to use for the offline signature
     #[clap(long)]
     account_number: u64,
-    /// The chain-id (ex: nym, nym-sandbox, etc)
-    #[clap(long)]
-    chain_id: String,
 }
 
 pub(crate) async fn execute(
@@ -48,7 +45,7 @@ pub(crate) async fn execute(
             amount,
             args.account_number,
             args.sequence_number,
-            args.chain_id.parse().expect("Invalid Chain ID"),
+            network_info.chain_id.parse().expect("Invalid Chain ID"),
         )
         .await;
     match result {
@@ -74,7 +71,6 @@ mod tests {
             amount: 1_000_000_000_000,
             sequence_number: 0,
             account_number: 450,
-            chain_id: "nym-sandbox".to_string(),
         };
         let wallet = DirectSecp256k1HdWallet::from_mnemonic(
             &SANDBOX.bech32_prefix(),
