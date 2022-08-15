@@ -17,7 +17,7 @@ pub(crate) async fn execute(args: &Balance, network_info: NetworkInfo) {
         Config::try_from_nym_network_details(&network_info.network_details).expect("no config");
     let account_id = &args.account_id;
 
-    let client = Client::new_query(config).expect("Unable to connect to Mainnet");
+    let client = Client::new_query(config).expect("Unable to connect to network");
 
     let balance = client
         .nymd

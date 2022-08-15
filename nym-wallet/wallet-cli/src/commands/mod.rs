@@ -10,6 +10,7 @@ mod account;
 mod balance;
 mod bond;
 mod delegate;
+mod rewards;
 mod sender;
 mod undelegate;
 
@@ -30,7 +31,9 @@ pub(crate) enum Commands {
     /// Undelegate tokens from a node
     UndelegateOffline(undelegate::Undelegate),
     /// Get the balance and delegations of an account
-    Balance(balance::Balance), // UnBond(unbond::UnBond),
+    Balance(balance::Balance),
+    /// View, Claim, or Compound rewards
+    Rewards(rewards::Rewards),
 }
 
 pub(crate) struct NetworkInfo {
@@ -56,5 +59,6 @@ pub(crate) async fn execute(
             undelegate::execute(m, network_info, wallet.expect("Invalid Wallet")).await
         }
         Commands::Balance(m) => balance::execute(m, network_info).await,
+        Commands::Rewards(m) => rewards::execute(m, network_info, wallet).await,
     }
 }
