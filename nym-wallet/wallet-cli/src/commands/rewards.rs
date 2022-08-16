@@ -89,7 +89,7 @@ pub(crate) async fn execute(
                 Client::new_offline_signing(config, wallet.expect("Invalid Wallet"));
             offline_result = offline_signer
                 .nymd
-                .compound_mixnet_delegator_reward_offline(
+                .execute_offline_compound_delegator_reward(
                     args.mixnode_identity.clone(),
                     rewards_args.account_number,
                     rewards_args.sequence_number,
@@ -99,7 +99,7 @@ pub(crate) async fn execute(
         Operation::ClaimOffline(rewards_args) => {
             let offline_signer =
                 Client::new_offline_signing(config, wallet.expect("Invalid Wallet"));
-            offline_result = offline_signer.nymd.claim_mixnet_delegator_reward_offline(
+            offline_result = offline_signer.nymd.execute_offline_claim_delegator_reward(
                 args.mixnode_identity.clone(),
                 rewards_args.account_number,
                 rewards_args.sequence_number,

@@ -44,11 +44,7 @@ pub(crate) struct Bond {
     http_api_port: Option<u16>,
 }
 
-pub(crate) async fn execute(
-    args: &Bond,
-    network_info: NetworkInfo,
-    wallet: DirectSecp256k1HdWallet,
-) {
+pub(crate) fn execute(args: &Bond, network_info: NetworkInfo, wallet: DirectSecp256k1HdWallet) {
     println!("Attempt to bond to mixnode {}...", args.identity_key);
     let mix_node = MixNode {
         host: args.host.clone(),
@@ -76,17 +72,14 @@ pub(crate) async fn execute(
             .base
             .clone(),
     };
-    let result = offline_signer
-        .nymd
-        .bond_mixnode_offline(
-            mix_node,
-            args.owner_signature.clone(),
-            pledge,
-            args.account_number,
-            args.sequence_number,
-            network_info.chain_id.parse().expect("Invalid Chain ID"),
-        )
-        .await;
+    let result = offline_signer.nymd.execute_offline_bond_mixnode(
+        mix_node,
+        args.owner_signature.clone(),
+        pledge,
+        args.account_number,
+        args.sequence_number,
+        network_info.chain_id.parse().expect("Invalid Chain ID"),
+    );
 
     match result {
         Ok(response) => {
@@ -102,8 +95,8 @@ mod tests {
     use crate::commands::bond::*;
     use network_defaults::all::Network::SANDBOX;
 
-    #[tokio::test]
-    async fn test_generate_tx() {
+    #[test]
+    fn test_generate_tx() {
         let mnemonic = "drill poet latin puzzle fork lift rocket magic width hello radio glue loop electric jacket guide job goat dust provide input spoon wall thumb";
         let args = Bond {
             identity_key: "9c8rzttr9xzP1qfzVBFUaUN3jHREshKDnn3gugg7uhwA".to_string(),
@@ -132,7 +125,6 @@ mod tests {
                 chain_id: "nym-sandbox".to_string(),
             },
             wallet,
-        )
-        .await;
+        );
     }
 }

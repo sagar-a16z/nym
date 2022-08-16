@@ -20,11 +20,7 @@ pub(crate) struct Delegate {
     account_number: u64,
 }
 
-pub(crate) async fn execute(
-    args: &Delegate,
-    network_info: NetworkInfo,
-    wallet: DirectSecp256k1HdWallet,
-) {
+pub(crate) fn execute(args: &Delegate, network_info: NetworkInfo, wallet: DirectSecp256k1HdWallet) {
     // setup a client, and look up the account info.
     let config =
         Config::try_from_nym_network_details(&network_info.network_details).expect("no config");
@@ -38,16 +34,13 @@ pub(crate) async fn execute(
             .base
             .clone(),
     };
-    let result = offline_signer
-        .nymd
-        .delegate_to_mixnode_offline(
-            args.mixnode_identity.clone(),
-            amount,
-            args.account_number,
-            args.sequence_number,
-            network_info.chain_id.parse().expect("Invalid Chain ID"),
-        )
-        .await;
+    let result = offline_signer.nymd.execute_offline_delegate_to_mixnode(
+        args.mixnode_identity.clone(),
+        amount,
+        args.account_number,
+        args.sequence_number,
+        network_info.chain_id.parse().expect("Invalid Chain ID"),
+    );
     match result {
         Ok(response) => {
             let json = serde_json::to_string(&response.data).unwrap();
@@ -62,8 +55,8 @@ mod tests {
     use crate::commands::delegate::*;
     use network_defaults::all::Network::SANDBOX;
 
-    #[tokio::test]
-    async fn test_generate_tx() {
+    #[test]
+    fn test_generate_tx() {
         let mnemonic = "drill poet latin puzzle fork lift rocket magic width hello radio glue loop electric jacket guide job goat dust provide input spoon wall thumb";
 
         let args = Delegate {
@@ -85,7 +78,6 @@ mod tests {
                 chain_id: "nym-sandbox".to_string(),
             },
             wallet,
-        )
-        .await;
+        );
     }
 }

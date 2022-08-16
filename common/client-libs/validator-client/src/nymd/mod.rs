@@ -15,7 +15,7 @@ use cosmrs::rpc::HttpClientUrl;
 use cosmrs::tendermint::abci::Transaction;
 use cosmrs::tx::{AccountNumber, Msg, SequenceNumber};
 use cosmwasm_std::Uint128;
-use execute::execute;
+use execute::{execute, offline};
 use mixnet_contract_common::mixnode::DelegationEvent;
 use mixnet_contract_common::{
     ContractStateParams, Delegation, ExecuteMsg, Gateway, GatewayBond, GatewayBondResponse,
@@ -63,6 +63,15 @@ pub mod error;
 pub mod fee;
 pub mod traits;
 pub mod wallet;
+
+#[derive(Debug, Clone)]
+pub(crate) struct OfflineArgs {
+    pub(crate) fee: Option<tx::Fee>,
+    pub(crate) account_number: u64,
+    pub(crate) sequence_number: u64,
+    pub(crate) chain_id: chain::Id,
+    pub(crate) funds: Vec<Coin>,
+}
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -893,6 +902,57 @@ impl<C> NymdClient<C> {
             .await
     }
 
+    pub fn execute_offline_send(
+        &self,
+        recipient: &AccountId,
+        amount: Vec<Coin>,
+        memo: Option<String>,
+        account_number: AccountNumber,
+        sequence_number: SequenceNumber,
+        chain_id: chain::Id,
+    ) -> Result<ExecuteResult, NymdError>
+    where
+        C: SigningCosmWasmClient + Sync,
+    {
+        let send_msg = MsgSend {
+            from_address: self.address().clone(),
+            to_address: recipient.clone(),
+            amount: amount.into_iter().map(Into::into).collect(),
+        }
+        .to_any()
+        .map_err(|_| NymdError::SerializationError("MsgSend".to_owned()))?;
+
+        let memo = memo.unwrap_or("Offline send delegator reward from rust!".to_string());
+        let messages = vec![send_msg];
+
+        // TODO determine fees
+        let fee_amount = Coin {
+            amount: 5_000,
+            denom: self.config.chain_details.mix_denom.base.clone(),
+        };
+        // Can't use automatic fee because that needs network access
+        let fee = tx::Fee::from_amount_and_gas(fee_amount.into(), 100_000);
+
+        let result = self.client.offline_sign(
+            self.address(),
+            messages,
+            fee,
+            memo,
+            account_number,
+            sequence_number,
+            chain_id,
+        )?;
+
+        let tx_bytes = result.to_bytes().unwrap();
+
+        Ok(ExecuteResult {
+            logs: vec![],
+            data: Data::from(tx_bytes),
+            transaction_hash: tx::Hash::new([0u8; 32]),
+            gas_info: Default::default(),
+        })
+    }
+
     /// Send funds from one address to multiple others
     pub async fn send_multiple(
         &self,
@@ -1130,55 +1190,27 @@ impl<C> NymdClient<C> {
         (ExecuteMsg::CompoundDelegatorReward { mix_identity }, fee)
     }
 
-    pub fn compound_mixnet_delegator_reward_offline(
+    #[offline("mixnet")]
+    fn _offline_compound_delegator_reward(
         &self,
         mix_identity: IdentityKey,
         account_number: AccountNumber,
         sequence_number: SequenceNumber,
         chain_id: chain::Id,
-    ) -> Result<ExecuteResult, NymdError>
+    ) -> (ExecuteMsg, OfflineArgs)
     where
         C: SigningCosmWasmClient + Sync,
     {
-        let req = ExecuteMsg::CompoundDelegatorReward { mix_identity };
-        let execute_msg = cosmwasm::MsgExecuteContract {
-            sender: self.address().clone(),
-            contract: self.mixnet_contract_address().clone(),
-            msg: serde_json::to_vec(&req)?,
-            funds: vec![],
-        }
-        .to_any()
-        .map_err(|_| NymdError::SerializationError("MsgExecuteContract".to_owned()))?;
-
-        let memo = "Offline compounding delegator reward from rust!".to_string();
-        let messages = vec![execute_msg];
-
-        // TODO what's this supposed to be for offline signing? Pretty sure this isn't right.
-        let fee_amount = Coin {
-            amount: 25_000,
-            denom: "unymt".to_string(),
-        };
-        // Can't use automatic fee because that needs network access
-        let fee = tx::Fee::from_amount_and_gas(fee_amount.into(), 100_0000);
-
-        let result = self.client.offline_sign(
-            self.address(),
-            messages,
-            fee,
-            memo,
-            account_number,
-            sequence_number,
-            chain_id,
-        )?;
-
-        let tx_bytes = result.to_bytes().unwrap();
-
-        Ok(ExecuteResult {
-            logs: vec![],
-            data: Data::from(tx_bytes),
-            transaction_hash: tx::Hash::new([0u8; 32]),
-            gas_info: Default::default(),
-        })
+        (
+            ExecuteMsg::CompoundDelegatorReward { mix_identity },
+            OfflineArgs {
+                fee: None,
+                account_number,
+                sequence_number,
+                chain_id,
+                funds: vec![],
+            },
+        )
     }
 
     #[execute("mixnet")]
@@ -1193,55 +1225,27 @@ impl<C> NymdClient<C> {
         (ExecuteMsg::ClaimDelegatorReward { mix_identity }, fee)
     }
 
-    pub fn claim_mixnet_delegator_reward_offline(
+    #[offline("mixnet")]
+    fn _offline_claim_delegator_reward(
         &self,
         mix_identity: IdentityKey,
         account_number: AccountNumber,
         sequence_number: SequenceNumber,
         chain_id: chain::Id,
-    ) -> Result<ExecuteResult, NymdError>
+    ) -> (ExecuteMsg, OfflineArgs)
     where
         C: SigningCosmWasmClient + Sync,
     {
-        let req = ExecuteMsg::ClaimDelegatorReward { mix_identity };
-        let execute_msg = cosmwasm::MsgExecuteContract {
-            sender: self.address().clone(),
-            contract: self.mixnet_contract_address().clone(),
-            msg: serde_json::to_vec(&req)?,
-            funds: vec![],
-        }
-        .to_any()
-        .map_err(|_| NymdError::SerializationError("MsgExecuteContract".to_owned()))?;
-
-        let memo = "Offline claiming delegator reward from rust!".to_string();
-        let messages = vec![execute_msg];
-
-        // TODO what's this supposed to be for offline signing? Pretty sure this isn't right.
-        let fee_amount = Coin {
-            amount: 25_000,
-            denom: "unymt".to_string(),
-        };
-        // Can't use automatic fee because that needs network access
-        let fee = tx::Fee::from_amount_and_gas(fee_amount.into(), 100_0000);
-
-        let result = self.client.offline_sign(
-            self.address(),
-            messages,
-            fee,
-            memo,
-            account_number,
-            sequence_number,
-            chain_id,
-        )?;
-
-        let tx_bytes = result.to_bytes().unwrap();
-
-        Ok(ExecuteResult {
-            logs: vec![],
-            data: Data::from(tx_bytes),
-            transaction_hash: tx::Hash::new([0u8; 32]),
-            gas_info: Default::default(),
-        })
+        (
+            ExecuteMsg::ClaimDelegatorReward { mix_identity },
+            OfflineArgs {
+                fee: None,
+                account_number,
+                sequence_number,
+                chain_id,
+                funds: vec![],
+            },
+        )
     }
 
     #[execute("vesting")]
@@ -1334,8 +1338,9 @@ impl<C> NymdClient<C> {
             )
             .await
     }
-    /// Announce a mixnode, paying a fee.
-    pub async fn bond_mixnode_offline(
+
+    #[offline("mixnet")]
+    fn _offline_bond_mixnode(
         &self,
         mixnode: MixNode,
         owner_signature: String,
@@ -1343,52 +1348,23 @@ impl<C> NymdClient<C> {
         account_number: AccountNumber,
         sequence_number: SequenceNumber,
         chain_id: chain::Id,
-    ) -> Result<ExecuteResult, NymdError>
+    ) -> (ExecuteMsg, OfflineArgs)
     where
         C: SigningCosmWasmClient + Sync,
     {
-        let req = ExecuteMsg::BondMixnode {
-            mix_node: mixnode,
-            owner_signature,
-        };
-        let execute_msg = cosmwasm::MsgExecuteContract {
-            sender: self.address().clone(),
-            contract: self.mixnet_contract_address().clone(),
-            msg: serde_json::to_vec(&req)?,
-            funds: vec![pledge.into()],
-        }
-        .to_any()
-        .map_err(|_| NymdError::SerializationError("MsgExecuteContract".to_owned()))?;
-
-        let memo = "Offline Bonding mixnode from rust!".to_string();
-        let messages = vec![execute_msg];
-
-        // TODO what's this supposed to be for offline signing? Pretty sure this isn't right.
-        let fee_amount = Coin {
-            amount: 25_000,
-            denom: "unymt".to_string(),
-        };
-        // Can't use automatic fee because that needs network access
-        let fee = tx::Fee::from_amount_and_gas(fee_amount.into(), 100_0000);
-
-        let result = self.client.offline_sign(
-            self.address(),
-            messages,
-            fee,
-            memo,
-            account_number,
-            sequence_number,
-            chain_id,
-        )?;
-
-        let tx_bytes = result.to_bytes().unwrap();
-
-        Ok(ExecuteResult {
-            logs: vec![],
-            data: Data::from(tx_bytes),
-            transaction_hash: tx::Hash::new([0u8; 32]),
-            gas_info: Default::default(),
-        })
+        (
+            ExecuteMsg::BondMixnode {
+                mix_node: mixnode,
+                owner_signature,
+            },
+            OfflineArgs {
+                fee: None,
+                account_number,
+                sequence_number,
+                chain_id,
+                funds: vec![pledge.into()],
+            },
+        )
     }
 
     /// Announce a mixnode on behalf of the owner, paying a fee.
@@ -1556,58 +1532,28 @@ impl<C> NymdClient<C> {
             .await
     }
 
-    pub async fn delegate_to_mixnode_offline(
+    #[offline("mixnet")]
+    fn _offline_delegate_to_mixnode(
         &self,
         mix_identity: String,
         amount: Coin,
         account_number: AccountNumber,
         sequence_number: SequenceNumber,
         chain_id: chain::Id,
-    ) -> Result<ExecuteResult, NymdError>
+    ) -> (ExecuteMsg, OfflineArgs)
     where
         C: SigningCosmWasmClient + Sync,
     {
-        let req = ExecuteMsg::DelegateToMixnode {
-            mix_identity: mix_identity.to_string(),
-        };
-        let execute_msg = cosmwasm::MsgExecuteContract {
-            sender: self.address().clone(),
-            contract: self.mixnet_contract_address().clone(),
-            msg: serde_json::to_vec(&req)?,
-            funds: vec![amount.into()],
-        }
-        .to_any()
-        .map_err(|_| NymdError::SerializationError("MsgExecuteContract".to_owned()))?;
-
-        let memo = "Offline delegating mixnode from rust!".to_string();
-        let messages = vec![execute_msg];
-
-        // TODO what's this supposed to be for offline signing? Pretty sure this isn't right.
-        let fee_amount = Coin {
-            amount: 25_000,
-            denom: "unymt".to_string(),
-        };
-        // Can't use automatic fee because that needs network access
-        let fee = tx::Fee::from_amount_and_gas(fee_amount.into(), 100_0000);
-
-        let result = self.client.offline_sign(
-            self.address(),
-            messages,
-            fee,
-            memo,
-            account_number,
-            sequence_number,
-            chain_id,
-        )?;
-
-        let tx_bytes = result.to_bytes().unwrap();
-
-        Ok(ExecuteResult {
-            logs: vec![],
-            data: Data::from(tx_bytes),
-            transaction_hash: tx::Hash::new([0u8; 32]),
-            gas_info: Default::default(),
-        })
+        (
+            ExecuteMsg::DelegateToMixnode { mix_identity },
+            OfflineArgs {
+                fee: None,
+                account_number,
+                sequence_number,
+                chain_id,
+                funds: vec![amount.into()],
+            },
+        )
     }
 
     /// Delegates specified amount of stake to particular mixnode on
@@ -1701,57 +1647,27 @@ impl<C> NymdClient<C> {
             .await
     }
 
-    pub async fn remove_mixnode_delegation_offline(
+    #[offline("mixnet")]
+    fn _offline_remove_mixnode_delegation(
         &self,
         mix_identity: String,
         account_number: AccountNumber,
         sequence_number: SequenceNumber,
         chain_id: chain::Id,
-    ) -> Result<ExecuteResult, NymdError>
+    ) -> (ExecuteMsg, OfflineArgs)
     where
         C: SigningCosmWasmClient + Sync,
     {
-        let req = ExecuteMsg::UndelegateFromMixnode {
-            mix_identity: mix_identity.to_string(),
-        };
-        let execute_msg = cosmwasm::MsgExecuteContract {
-            sender: self.address().clone(),
-            contract: self.mixnet_contract_address().clone(),
-            msg: serde_json::to_vec(&req)?,
-            funds: vec![],
-        }
-        .to_any()
-        .map_err(|_| NymdError::SerializationError("MsgExecuteContract".to_owned()))?;
-
-        let memo = "Offline undelegating mixnode from rust!".to_string();
-        let messages = vec![execute_msg];
-
-        // TODO what's this supposed to be for offline signing? Pretty sure this isn't right.
-        let fee_amount = Coin {
-            amount: 25_000,
-            denom: "unymt".to_string(),
-        };
-        // Can't use automatic fee because that needs network access
-        let fee = tx::Fee::from_amount_and_gas(fee_amount.into(), 100_0000);
-
-        let result = self.client.offline_sign(
-            self.address(),
-            messages,
-            fee,
-            memo,
-            account_number,
-            sequence_number,
-            chain_id,
-        )?;
-
-        let tx_bytes = result.to_bytes().unwrap();
-
-        Ok(ExecuteResult {
-            logs: vec![],
-            data: Data::from(tx_bytes),
-            transaction_hash: tx::Hash::new([0u8; 32]),
-            gas_info: Default::default(),
-        })
+        (
+            ExecuteMsg::UndelegateFromMixnode { mix_identity },
+            OfflineArgs {
+                fee: None,
+                account_number,
+                sequence_number,
+                chain_id,
+                funds: vec![],
+            },
+        )
     }
 
     /// Removes stake delegation from a particular mixnode on behalf of a particular delegator.
