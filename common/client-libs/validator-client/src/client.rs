@@ -18,10 +18,10 @@ use validator_api_requests::models::{MixNodeBondAnnotated, UptimeResponse};
 
 #[cfg(feature = "nymd-client")]
 use crate::nymd::{
-    self, error::NymdError, CosmWasmClient, NymdClient, QueryNymdClient, SigningNymdClient,
+    self, error::NymdError, wallet::DirectSecp256k1HdWallet, CosmWasmClient, NymdClient,
+    QueryNymdClient, SigningNymdClient,
 };
 
-use crate::nymd::wallet::DirectSecp256k1HdWallet;
 #[cfg(feature = "nymd-client")]
 use mixnet_contract_common::{
     mixnode::DelegationEvent, ContractStateParams, Delegation, IdentityKey, Interval,
