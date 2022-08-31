@@ -18,6 +18,7 @@ use mixnet_contract_common::{
 };
 #[cfg(feature = "coconut")]
 use multisig_contract_common::msg::ProposalResponse;
+use validator_client::nymd::wallet::DirectSecp256k1HdWallet;
 use validator_client::nymd::{
     hash::{Hash, SHA256_HASH_SIZE},
     Coin, CosmWasmClient, Fee, QueryNymdClient, SigningCosmWasmClient, SigningNymdClient,
@@ -88,6 +89,33 @@ impl Client<SigningNymdClient> {
             .expect("the mnemonic is invalid!");
 
         let inner = validator_client::Client::new_signing(client_config, mnemonic)
+            .expect("Failed to connect to nymd!");
+
+        Client(Arc::new(RwLock::new(inner)))
+    }
+
+    pub(crate) fn new_offline_signing(config: &Config) -> Self {
+        let api_url = format!("http://localhost:{}", DEFAULT_VALIDATOR_API_PORT)
+            .parse()
+            .unwrap();
+        let nymd_url = config.get_nymd_validator_url();
+
+        let details = NymNetworkDetails::new_from_env()
+            .with_mixnet_contract(Some(config.get_mixnet_contract_address()));
+
+        let client_config = validator_client::Config::try_from_nym_network_details(&details)
+            .expect("failed to construct valid validator client config with the provided network")
+            .with_urls(nymd_url, api_url);
+
+        let mnemonic = config
+            .get_mnemonic()
+            .parse()
+            .expect("the mnemonic is invalid!");
+
+        let wallet =
+            DirectSecp256k1HdWallet::from_mnemonic(prefix, mnemonic).expect("invalid mnemonic.");
+
+        let inner = validator_client::Client::new_offline_signing(client_config, wallet)
             .expect("Failed to connect to nymd!");
 
         Client(Arc::new(RwLock::new(inner)))

@@ -15,7 +15,7 @@ import { ConfirmationModal } from './ConfirmationModal';
 
 type TBondFormFields = {
   withAdvancedOptions: boolean;
-  tokenPool: string;
+  token_pool: string;
   ownerSignature: string;
   identityKey: string;
   sphinxKey: string;
@@ -30,7 +30,7 @@ type TBondFormFields = {
 
 const defaultValues = {
   withAdvancedOptions: false,
-  tokenPool: 'balance',
+  token_pool: 'balance',
   identityKey: '',
   sphinxKey: '',
   ownerSignature: '',
@@ -81,16 +81,16 @@ export const MixnodeForm = ({
   const watchAdvancedOptions = watch('withAdvancedOptions', defaultValues.withAdvancedOptions);
 
   const handleValidateAndGetFee = async (data: TBondFormFields) => {
-    if (data.tokenPool === 'balance' && !(await checkHasEnoughFunds(data.amount.amount || ''))) {
+    if (data.token_pool === 'balance' && !(await checkHasEnoughFunds(data.amount.amount || ''))) {
       return setError('amount.amount', { message: 'Not enough funds in wallet' });
     }
 
-    if (data.tokenPool === 'locked' && !(await checkHasEnoughLockedTokens(data.amount.amount || ''))) {
+    if (data.token_pool === 'locked' && !(await checkHasEnoughLockedTokens(data.amount.amount || ''))) {
       return setError('amount.amount', { message: 'Not enough locked tokens' });
     }
 
     try {
-      await getFee(data.tokenPool === 'locked' ? simulateVestingBondMixnode : simulateBondMixnode, {
+      await getFee(data.token_pool === 'locked' ? simulateVestingBondMixnode : simulateBondMixnode, {
         ownerSignature: data.ownerSignature,
         mixnode: {
           identity_key: data.identityKey,
@@ -127,12 +127,12 @@ export const MixnodeForm = ({
       fee: fee?.fee,
     };
     try {
-      if (data.tokenPool === 'balance') {
+      if (data.token_pool === 'balance') {
         await bondMixNode(payload);
         await userBalance.fetchBalance();
       }
 
-      if (data.tokenPool === 'locked') {
+      if (data.token_pool === 'locked') {
         await vestingBondMixNode(payload);
         await userBalance.fetchTokenAllocation();
       }
@@ -206,7 +206,7 @@ export const MixnodeForm = ({
 
             {userBalance.originalVesting && (
               <Grid item xs={12} sm={6}>
-                <TokenPoolSelector onSelect={(pool) => setValue('tokenPool', pool)} disabled={disabled} />
+                <TokenPoolSelector onSelect={(pool) => setValue('token_pool', pool)} disabled={disabled} />
               </Grid>
             )}
             <Grid item xs={12} sm={6}>
@@ -336,29 +336,43 @@ export const MixnodeForm = ({
             )}
           </Grid>
         </Box>
-        <Box
+        <Grid container spacing={4}
           sx={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'flex-end',
-            padding: 3,
+            padding: 1,
             pt: 0,
-          }}
-        >
-          <Button
-            disabled={isSubmitting || disabled}
-            variant="contained"
-            color="primary"
-            type="submit"
-            data-testid="submit-button"
-            disableElevation
-            onClick={handleSubmit(handleValidateAndGetFee)}
-            endIcon={isSubmitting && <CircularProgress size={20} />}
-            size="large"
-          >
-            Bond
-          </Button>
-        </Box>
+          }}>
+          <Grid item xs={3}>
+            <Button
+              disabled={isSubmitting || disabled}
+              variant="contained"
+              color="primary"
+              type="submit"
+              data-testid="submit-button"
+              disableElevation
+              onClick={handleSubmit(handleValidateAndGetFee)}
+              endIcon={isSubmitting && <CircularProgress size={20} />}
+              size="large">
+              Generate Bonding TX
+            </Button>
+          </Grid>
+          <Grid item xs={2}>
+            <Button
+              disabled={isSubmitting || disabled}
+              variant="contained"
+              color="primary"
+              type="submit"
+              data-testid="submit-button"
+              disableElevation
+              onClick={handleSubmit(handleValidateAndGetFee)}
+              endIcon={isSubmitting && <CircularProgress size={20} />}
+              size="large">
+              Bond
+            </Button>
+          </Grid>
+        </Grid>
       </FormControl>
     </>
   );

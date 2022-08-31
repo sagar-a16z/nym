@@ -2152,7 +2152,7 @@ dependencies = [
  "indexmap",
  "slab",
  "tokio",
- "tokio-util",
+ "tokio-util 0.6.9",
  "tracing",
 ]
 
@@ -4797,6 +4797,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "sysinfo"
+version = "0.24.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54cb4ebf3d49308b99e6e9dc95e989e2fdbdc210e4f67c39db0bb89ba927001c"
+dependencies = [
+ "cfg-if",
+ "core-foundation-sys",
+ "libc",
+ "ntapi",
+ "once_cell",
+ "rayon",
+ "winapi",
+]
+
+[[package]]
 name = "system-deps"
 version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5328,6 +5343,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "tokio-util"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc463cd8deddc3770d20f9852143d50bf6094e640b485cb2e189a2099085ff45"
+dependencies = [
+ "bytes",
+ "futures-core",
+ "futures-sink",
+ "pin-project-lite",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "toml"
 version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5657,6 +5686,33 @@ dependencies = [
  "same-file",
  "winapi",
  "winapi-util",
+]
+
+[[package]]
+name = "wallet-cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bs58",
+ "clap",
+ "cosmwasm-std",
+ "futures",
+ "humantime-serde",
+ "lazy_static",
+ "log",
+ "mixnet-contract-common",
+ "network-defaults",
+ "nym-types",
+ "pretty_env_logger",
+ "rand 0.8.5",
+ "serde",
+ "serde_json",
+ "sysinfo",
+ "tokio",
+ "tokio-util 0.7.3",
+ "toml",
+ "url",
+ "validator-client",
 ]
 
 [[package]]

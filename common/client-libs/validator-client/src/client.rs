@@ -18,7 +18,8 @@ use validator_api_requests::models::{MixNodeBondAnnotated, UptimeResponse};
 
 #[cfg(feature = "nymd-client")]
 use crate::nymd::{
-    self, error::NymdError, CosmWasmClient, NymdClient, QueryNymdClient, SigningNymdClient,
+    self, error::NymdError, wallet::DirectSecp256k1HdWallet, CosmWasmClient, NymdClient,
+    QueryNymdClient, SigningNymdClient,
 };
 
 #[cfg(feature = "nymd-client")]
@@ -150,6 +151,24 @@ impl Client<SigningNymdClient> {
             validator_api: validator_api_client,
             nymd: nymd_client,
         })
+    }
+
+    pub fn new_offline_signing(
+        config: Config,
+        wallet: DirectSecp256k1HdWallet,
+    ) -> Client<SigningNymdClient> {
+        let validator_api_client = validator_api::Client::new(config.api_url.clone());
+        let nymd_client =
+            NymdClient::offline_signer(config.nymd_config.clone(), wallet.clone(), None);
+        Client {
+            mnemonic: Some(bip39::Mnemonic::parse_normalized(wallet.mnemonic().as_str()).unwrap()),
+            mixnode_page_limit: config.mixnode_page_limit,
+            gateway_page_limit: config.gateway_page_limit,
+            mixnode_delegations_page_limit: config.mixnode_delegations_page_limit,
+            rewarded_set_page_limit: config.rewarded_set_page_limit,
+            validator_api: validator_api_client,
+            nymd: nymd_client,
+        }
     }
 
     pub fn change_nymd(&mut self, new_endpoint: Url) -> Result<(), ValidatorClientError> {

@@ -31,3 +31,10 @@ where
 {
     signing_client::Client::connect_with_signer(endpoint, signer, gas_price)
 }
+
+pub fn offline_signer(
+    signer: DirectSecp256k1HdWallet,
+    gas_price: GasPrice,
+) -> signing_client::Client {
+    signing_client::Client::offline_signer(signer, gas_price)
+}

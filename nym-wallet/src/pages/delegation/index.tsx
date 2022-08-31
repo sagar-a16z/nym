@@ -112,7 +112,7 @@ export const Delegation: FC<{ isStorybook?: boolean }> = ({ isStorybook }) => {
   const handleNewDelegation = async (
     identityKey: string,
     amount: DecCoin,
-    tokenPool: TPoolOption,
+    token_pool: TPoolOption,
     fee?: FeeDetails,
   ) => {
     setConfirmationModalProps({
@@ -127,7 +127,7 @@ export const Delegation: FC<{ isStorybook?: boolean }> = ({ isStorybook }) => {
           identity: identityKey,
           amount,
         },
-        tokenPool,
+        token_pool,
         fee,
       );
 
@@ -152,7 +152,7 @@ export const Delegation: FC<{ isStorybook?: boolean }> = ({ isStorybook }) => {
     }
   };
 
-  const handleDelegateMore = async (identityKey: string, amount: DecCoin, tokenPool: TPoolOption, fee?: FeeDetails) => {
+  const handleDelegateMore = async (identityKey: string, amount: DecCoin, token_pool: TPoolOption, fee?: FeeDetails) => {
     if (currentDelegationListActionItem?.node_identity !== identityKey || !clientDetails) {
       setConfirmationModalProps({
         status: 'error',
@@ -174,7 +174,7 @@ export const Delegation: FC<{ isStorybook?: boolean }> = ({ isStorybook }) => {
           identity: identityKey,
           amount,
         },
-        tokenPool,
+        token_pool,
         fee,
       );
       const balances = await getAllBalances();

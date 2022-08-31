@@ -12,9 +12,10 @@ use crate::nymd::wallet::DirectSecp256k1HdWallet;
 use cosmrs::cosmwasm;
 use cosmrs::rpc::Error as TendermintRpcError;
 use cosmrs::rpc::HttpClientUrl;
-use cosmrs::tx::Msg;
+use cosmrs::tendermint::abci::Transaction;
+use cosmrs::tx::{AccountNumber, Msg, SequenceNumber};
 use cosmwasm_std::Uint128;
-use execute::execute;
+use execute::{execute, offline};
 use mixnet_contract_common::mixnode::DelegationEvent;
 use mixnet_contract_common::{
     ContractStateParams, Delegation, ExecuteMsg, Gateway, GatewayBond, GatewayBondResponse,
@@ -41,7 +42,9 @@ pub use cosmrs::rpc::HttpClient as QueryNymdClient;
 pub use cosmrs::rpc::Paging;
 pub use cosmrs::tendermint::abci::responses::{DeliverTx, Event};
 pub use cosmrs::tendermint::abci::tag::Tag;
+use cosmrs::tendermint::abci::Data;
 pub use cosmrs::tendermint::block::Height;
+use cosmrs::tendermint::chain;
 pub use cosmrs::tendermint::hash;
 pub use cosmrs::tendermint::validator::Info as TendermintValidatorInfo;
 pub use cosmrs::tendermint::Time as TendermintTime;
@@ -60,6 +63,15 @@ pub mod error;
 pub mod fee;
 pub mod traits;
 pub mod wallet;
+
+#[derive(Debug, Clone)]
+pub(crate) struct OfflineArgs {
+    pub(crate) fee: Option<tx::Fee>,
+    pub(crate) account_number: u64,
+    pub(crate) sequence_number: u64,
+    pub(crate) chain_id: chain::Id,
+    pub(crate) funds: Vec<Coin>,
+}
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -179,6 +191,28 @@ impl NymdClient<SigningNymdClient> {
         })
     }
 
+    pub fn offline_signer(
+        config: Config,
+        wallet: DirectSecp256k1HdWallet,
+        gas_price: Option<GasPrice>,
+    ) -> NymdClient<SigningNymdClient> {
+        let denom = &config.chain_details.mix_denom.base;
+        let client_address = wallet
+            .try_derive_accounts()
+            .expect("invalid wallet")
+            .into_iter()
+            .map(|account| account.address)
+            .collect();
+        let gas_price = gas_price.unwrap_or(GasPrice::new_with_default_price(&denom).unwrap());
+
+        NymdClient {
+            client: SigningNymdClient::offline_signer(wallet, gas_price),
+            config,
+            client_address: Some(client_address),
+            simulated_gas_multiplier: DEFAULT_SIMULATED_GAS_MULTIPLIER,
+        }
+    }
+
     pub fn connect_with_mnemonic<U: Clone>(
         config: Config,
         endpoint: U,
@@ -204,6 +238,10 @@ impl NymdClient<SigningNymdClient> {
             client_address: Some(client_address),
             simulated_gas_multiplier: DEFAULT_SIMULATED_GAS_MULTIPLIER,
         })
+    }
+
+    pub fn is_offline(&self) -> bool {
+        self.client.is_offline()
     }
 }
 
@@ -350,12 +388,22 @@ impl<C> NymdClient<C> {
         self.client.get_sequence(self.address()).await
     }
 
+    pub async fn account_sequence_for_address(
+        &self,
+        address: &AccountId,
+    ) -> Result<SequenceResponse, NymdError>
+    where
+        C: CosmWasmClient + Sync,
+    {
+        self.client.get_sequence(address).await
+    }
+
     pub async fn get_account_details(
         &self,
         address: &AccountId,
     ) -> Result<Option<Account>, NymdError>
     where
-        C: SigningCosmWasmClient + Sync,
+        C: CosmWasmClient + Sync,
     {
         self.client.get_account(address).await
     }
@@ -854,6 +902,57 @@ impl<C> NymdClient<C> {
             .await
     }
 
+    pub fn execute_offline_send(
+        &self,
+        recipient: &AccountId,
+        amount: Vec<Coin>,
+        memo: Option<String>,
+        account_number: AccountNumber,
+        sequence_number: SequenceNumber,
+        chain_id: chain::Id,
+    ) -> Result<ExecuteResult, NymdError>
+    where
+        C: SigningCosmWasmClient + Sync,
+    {
+        let send_msg = MsgSend {
+            from_address: self.address().clone(),
+            to_address: recipient.clone(),
+            amount: amount.into_iter().map(Into::into).collect(),
+        }
+        .to_any()
+        .map_err(|_| NymdError::SerializationError("MsgSend".to_owned()))?;
+
+        let memo = memo.unwrap_or("Offline send delegator reward from rust!".to_string());
+        let messages = vec![send_msg];
+
+        // TODO determine fees
+        let fee_amount = Coin {
+            amount: 5_000,
+            denom: self.config.chain_details.mix_denom.base.clone(),
+        };
+        // Can't use automatic fee because that needs network access
+        let fee = tx::Fee::from_amount_and_gas(fee_amount.into(), 100_000);
+
+        let result = self.client.offline_sign(
+            self.address(),
+            messages,
+            fee,
+            memo,
+            account_number,
+            sequence_number,
+            chain_id,
+        )?;
+
+        let tx_bytes = result.to_bytes().unwrap();
+
+        Ok(ExecuteResult {
+            logs: vec![],
+            data: Data::from(tx_bytes),
+            transaction_hash: tx::Hash::new([0u8; 32]),
+            gas_info: Default::default(),
+        })
+    }
+
     /// Send funds from one address to multiple others
     pub async fn send_multiple(
         &self,
@@ -911,6 +1010,14 @@ impl<C> NymdClient<C> {
         self.client
             .revoke_allowance(self.address(), grantee, fee, memo)
             .await
+    }
+
+    pub async fn broadcast_tx(&self, tx_data: Data) -> Result<TxResponse, NymdError>
+    where
+        C: CosmWasmClient + Sync,
+    {
+        let transaction = Transaction::from(tx_data.value().clone());
+        self.client.broadcast_tx(transaction).await
     }
 
     pub async fn execute<M>(
@@ -1083,6 +1190,29 @@ impl<C> NymdClient<C> {
         (ExecuteMsg::CompoundDelegatorReward { mix_identity }, fee)
     }
 
+    #[offline("mixnet")]
+    fn _offline_compound_delegator_reward(
+        &self,
+        mix_identity: IdentityKey,
+        account_number: AccountNumber,
+        sequence_number: SequenceNumber,
+        chain_id: chain::Id,
+    ) -> (ExecuteMsg, OfflineArgs)
+    where
+        C: SigningCosmWasmClient + Sync,
+    {
+        (
+            ExecuteMsg::CompoundDelegatorReward { mix_identity },
+            OfflineArgs {
+                fee: None,
+                account_number,
+                sequence_number,
+                chain_id,
+                funds: vec![],
+            },
+        )
+    }
+
     #[execute("mixnet")]
     fn _claim_delegator_reward(
         &self,
@@ -1093,6 +1223,29 @@ impl<C> NymdClient<C> {
         C: SigningCosmWasmClient + Sync,
     {
         (ExecuteMsg::ClaimDelegatorReward { mix_identity }, fee)
+    }
+
+    #[offline("mixnet")]
+    fn _offline_claim_delegator_reward(
+        &self,
+        mix_identity: IdentityKey,
+        account_number: AccountNumber,
+        sequence_number: SequenceNumber,
+        chain_id: chain::Id,
+    ) -> (ExecuteMsg, OfflineArgs)
+    where
+        C: SigningCosmWasmClient + Sync,
+    {
+        (
+            ExecuteMsg::ClaimDelegatorReward { mix_identity },
+            OfflineArgs {
+                fee: None,
+                account_number,
+                sequence_number,
+                chain_id,
+                funds: vec![],
+            },
+        )
     }
 
     #[execute("vesting")]
@@ -1173,6 +1326,7 @@ impl<C> NymdClient<C> {
             mix_node: mixnode,
             owner_signature,
         };
+
         self.client
             .execute(
                 self.address(),
@@ -1183,6 +1337,34 @@ impl<C> NymdClient<C> {
                 vec![pledge],
             )
             .await
+    }
+
+    #[offline("mixnet")]
+    fn _offline_bond_mixnode(
+        &self,
+        mixnode: MixNode,
+        owner_signature: String,
+        pledge: Coin,
+        account_number: AccountNumber,
+        sequence_number: SequenceNumber,
+        chain_id: chain::Id,
+    ) -> (ExecuteMsg, OfflineArgs)
+    where
+        C: SigningCosmWasmClient + Sync,
+    {
+        (
+            ExecuteMsg::BondMixnode {
+                mix_node: mixnode,
+                owner_signature,
+            },
+            OfflineArgs {
+                fee: None,
+                account_number,
+                sequence_number,
+                chain_id,
+                funds: vec![pledge.into()],
+            },
+        )
     }
 
     /// Announce a mixnode on behalf of the owner, paying a fee.
@@ -1204,6 +1386,7 @@ impl<C> NymdClient<C> {
             owner,
             owner_signature,
         };
+
         self.client
             .execute(
                 self.address(),
@@ -1349,6 +1532,30 @@ impl<C> NymdClient<C> {
             .await
     }
 
+    #[offline("mixnet")]
+    fn _offline_delegate_to_mixnode(
+        &self,
+        mix_identity: String,
+        amount: Coin,
+        account_number: AccountNumber,
+        sequence_number: SequenceNumber,
+        chain_id: chain::Id,
+    ) -> (ExecuteMsg, OfflineArgs)
+    where
+        C: SigningCosmWasmClient + Sync,
+    {
+        (
+            ExecuteMsg::DelegateToMixnode { mix_identity },
+            OfflineArgs {
+                fee: None,
+                account_number,
+                sequence_number,
+                chain_id,
+                funds: vec![amount.into()],
+            },
+        )
+    }
+
     /// Delegates specified amount of stake to particular mixnode on
     /// behalf of a particular delegator.
     pub async fn delegate_to_mixnode_on_behalf(
@@ -1438,6 +1645,29 @@ impl<C> NymdClient<C> {
                 vec![],
             )
             .await
+    }
+
+    #[offline("mixnet")]
+    fn _offline_remove_mixnode_delegation(
+        &self,
+        mix_identity: String,
+        account_number: AccountNumber,
+        sequence_number: SequenceNumber,
+        chain_id: chain::Id,
+    ) -> (ExecuteMsg, OfflineArgs)
+    where
+        C: SigningCosmWasmClient + Sync,
+    {
+        (
+            ExecuteMsg::UndelegateFromMixnode { mix_identity },
+            OfflineArgs {
+                fee: None,
+                account_number,
+                sequence_number,
+                chain_id,
+                funds: vec![],
+            },
+        )
     }
 
     /// Removes stake delegation from a particular mixnode on behalf of a particular delegator.
