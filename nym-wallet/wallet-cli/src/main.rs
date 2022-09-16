@@ -54,7 +54,7 @@ async fn main() {
         }
         Network::MAINNET => {
             network_details = MAINNET.details();
-            chain_id = "nym";
+            chain_id = "nyx";
         }
         Network::CUSTOM { details: _ } => {
             println!("Invalid chain ID specified. Custom Networks are not supported yet.");
