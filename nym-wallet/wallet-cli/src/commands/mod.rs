@@ -9,6 +9,7 @@ use validator_client::nymd::wallet::DirectSecp256k1HdWallet;
 mod account;
 mod balance;
 mod bond;
+mod create;
 mod delegate;
 mod rewards;
 mod send;
@@ -37,6 +38,8 @@ pub(crate) enum Commands {
     Balance(balance::Balance),
     /// View, Claim, or Compound rewards
     Rewards(rewards::Rewards),
+    /// Create a new wallet
+    Create(create::Create),
 }
 
 pub(crate) struct NetworkInfo {
@@ -50,6 +53,7 @@ pub(crate) async fn execute(
     wallet: Option<DirectSecp256k1HdWallet>,
 ) {
     match &args.command {
+        Commands::Create(m) => create::execute(m, network_info),
         Commands::BondOffline(m) => bond::execute(m, network_info, wallet.expect("Invalid Wallet")),
         Commands::SendOffline(m) => send::execute(m, network_info, wallet.expect("Invalid Wallet")),
         Commands::DelegateOffline(m) => {
