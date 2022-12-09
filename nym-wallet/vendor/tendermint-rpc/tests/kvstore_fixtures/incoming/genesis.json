@@ -1,0 +1,40 @@
+{
+  "id": "9f71da58-c631-4141-be10-a9dac3496af0",
+  "jsonrpc": "2.0",
+  "result": {
+    "genesis": {
+      "app_hash": "",
+      "chain_id": "dockerchain",
+      "consensus_params": {
+        "block": {
+          "max_bytes": "22020096",
+          "max_gas": "-1"
+        },
+        "evidence": {
+          "max_age_duration": "172800000000000",
+          "max_age_num_blocks": "100000",
+          "max_bytes": "1048576"
+        },
+        "validator": {
+          "pub_key_types": [
+            "ed25519"
+          ]
+        },
+        "version": {}
+      },
+      "genesis_time": "2021-07-16T12:16:29.232984022Z",
+      "initial_height": "1",
+      "validators": [
+        {
+          "address": "ABA577531E6D6F4119E7E1E0EE1909B908A8346D",
+          "name": "",
+          "power": "10",
+          "pub_key": {
+            "type": "tendermint/PubKeyEd25519",
+            "value": "f+7sWZojwd8xbxZ+GJL+x/zKr1wyM0NMJkp8tCnA4t0="
+          }
+        }
+      ]
+    }
+  }
+}
