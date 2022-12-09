@@ -1,0 +1,53 @@
+{
+  "id": "21ad34a1-45a5-4766-a917-d5492b24f941",
+  "jsonrpc": "2.0",
+  "result": {
+    "canonical": true,
+    "signed_header": {
+      "commit": {
+        "block_id": {
+          "hash": "223B6924AC98CE99678027C712954C565D4359507C3DECFF9D2D5B5A9E4231F6",
+          "parts": {
+            "hash": "F2FC723B88EFD18C4599BDF9441AA962F19C146C8601ED0854973189D11816DE",
+            "total": 1
+          }
+        },
+        "height": "10",
+        "round": 0,
+        "signatures": [
+          {
+            "block_id_flag": 2,
+            "signature": "XcYXbxMIxFjL5s+oD4XGi7KkzPAFHH1j6IWcX8odqWKgZkjxAk/ACDufwCqA3CwiQDO946qTo2dhZ7B2Ull3DA==",
+            "timestamp": "2021-07-16T12:16:34.512439966Z",
+            "validator_address": "ABA577531E6D6F4119E7E1E0EE1909B908A8346D"
+          }
+        ]
+      },
+      "header": {
+        "app_hash": "0000000000000000",
+        "chain_id": "dockerchain",
+        "consensus_hash": "048091BC7DDC283F77BFBF91D73C44DA58C3DF8A9CBC867405D8B7F3DAADA22F",
+        "data_hash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "evidence_hash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "height": "10",
+        "last_block_id": {
+          "hash": "4AED585851DEE548A0143C8B41FA72FDA0597CA304807BEF06222D335EDD404D",
+          "parts": {
+            "hash": "B2A89B0BAC1FEF0C15D3ED44105E75DB7F8DB42ECEA33E32B3B820AEDAB132BD",
+            "total": 1
+          }
+        },
+        "last_commit_hash": "515DAA8790FBC39D93EA23229826BA45205DAF178F8BD9A7D4835AA07C663C68",
+        "last_results_hash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "next_validators_hash": "ADFA3B40824D69EAD7828B9A78D16D80DFA93499D1DB0EC362916AE61182A64D",
+        "proposer_address": "ABA577531E6D6F4119E7E1E0EE1909B908A8346D",
+        "time": "2021-07-16T12:16:33.997760354Z",
+        "validators_hash": "ADFA3B40824D69EAD7828B9A78D16D80DFA93499D1DB0EC362916AE61182A64D",
+        "version": {
+          "app": "1",
+          "block": "11"
+        }
+      }
+    }
+  }
+}

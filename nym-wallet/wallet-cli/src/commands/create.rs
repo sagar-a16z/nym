@@ -20,14 +20,17 @@ pub(crate) fn execute(args: &Create, network_info: NetworkInfo) {
     let wallet = DirectSecp256k1HdWallet::generate(prefix.as_str(), args.words.unwrap_or(24));
     match wallet {
         Ok(wallet) => {
-            let path = Path::new("nym_wallet_seed_phrase.txt");
+            let accounts = wallet.try_derive_accounts().unwrap();
+            let account_id = accounts[0].address();
+            let filename = format!("{}{}", account_id, "_seed_phrase.txt");
+            let path = Path::new(&filename);
             let mut file =
                 File::create(path).expect("Unable to create file to store wallet seed phrase");
             file.write_all(wallet.mnemonic().as_bytes())
                 .expect("Failed to write seed phrase");
             println!(
                 "Created Account: {}\nWrote seed phrase to {}",
-                wallet.try_derive_accounts().unwrap()[0].address(),
+                account_id,
                 path.display()
             );
         }

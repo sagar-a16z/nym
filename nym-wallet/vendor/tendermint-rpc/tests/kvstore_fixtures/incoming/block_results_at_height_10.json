@@ -1,0 +1,12 @@
+{
+  "id": "421a030f-0b5d-4adb-bb17-537d11228040",
+  "jsonrpc": "2.0",
+  "result": {
+    "begin_block_events": null,
+    "consensus_param_updates": null,
+    "end_block_events": null,
+    "height": "10",
+    "txs_results": null,
+    "validator_updates": null
+  }
+}
