@@ -7,6 +7,9 @@ use validator_client::{Client, Config};
 
 #[derive(Args, Clone)]
 pub(crate) struct Send {
+    /// The token you want to send ("nym" or "nyx")
+    #[clap(short, long, default_value = "nym")]
+    token: String,
     /// The Mixnode Identity to Delegate tokens
     #[clap(long)]
     recipient: String,
@@ -29,14 +32,15 @@ pub(crate) fn execute(args: &Send, network_info: NetworkInfo, wallet: DirectSecp
     let config =
         Config::try_from_nym_network_details(&network_info.network_details).expect("no config");
     let offline_signer = Client::new_offline_signing(config, wallet);
+    let denom = match args.token.as_str() {
+        "nym" | "NYM" | "Nym" => network_info.network_details.chain_details.mix_denom,
+        "nyx" | "NYX" | "Nyx" => network_info.network_details.chain_details.stake_denom,
+        _ => panic!("Invalid token type"),
+    };
+
     let amount: Coin = Coin {
         amount: args.amount,
-        denom: network_info
-            .network_details
-            .chain_details
-            .mix_denom
-            .base
-            .clone(),
+        denom: denom.base.clone(),
     };
     let result = offline_signer.nymd.execute_offline_send(
         &AccountId::from_str(&args.recipient).expect("Invalid account address"),
