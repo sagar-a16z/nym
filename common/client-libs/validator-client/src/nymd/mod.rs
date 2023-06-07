@@ -914,6 +914,7 @@ impl<C> NymdClient<C> {
     where
         C: SigningCosmWasmClient + Sync,
     {
+        let fee_denom = amount.get(0).expect("No amounts provided").denom.clone();
         let send_msg = MsgSend {
             from_address: self.address().clone(),
             to_address: recipient.clone(),
@@ -922,13 +923,13 @@ impl<C> NymdClient<C> {
         .to_any()
         .map_err(|_| NymdError::SerializationError("MsgSend".to_owned()))?;
 
-        let memo = memo.unwrap_or("Offline send delegator reward from rust!".to_string());
+        let memo = memo.unwrap_or("Offline send from rust!".to_string());
         let messages = vec![send_msg];
 
         // TODO determine fees
         let fee_amount = Coin {
             amount: 5_000,
-            denom: self.config.chain_details.mix_denom.base.clone(),
+            denom: fee_denom,
         };
         // Can't use automatic fee because that needs network access
         let fee = tx::Fee::from_amount_and_gas(fee_amount.into(), 100_000);
