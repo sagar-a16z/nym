@@ -1214,6 +1214,29 @@ impl<C> NymdClient<C> {
         )
     }
 
+    #[offline("vesting")]
+    fn _offline_withdraw_vested(
+        &self,
+        amount: mixnet_contract_common::Coin,
+        account_number: AccountNumber,
+        sequence_number: SequenceNumber,
+        chain_id: chain::Id,
+    ) -> (vesting_contract_common::ExecuteMsg, OfflineArgs)
+    where
+        C: SigningCosmWasmClient + Sync,
+    {
+        (
+            vesting_contract_common::ExecuteMsg::WithdrawVestedCoins { amount },
+            OfflineArgs {
+                fee: None,
+                account_number,
+                sequence_number,
+                chain_id,
+                funds: vec![],
+            },
+        )
+    }
+
     #[execute("mixnet")]
     fn _claim_delegator_reward(
         &self,

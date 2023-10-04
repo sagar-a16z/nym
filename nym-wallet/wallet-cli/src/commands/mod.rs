@@ -15,6 +15,7 @@ mod rewards;
 mod send;
 mod submit;
 mod undelegate;
+mod vesting;
 
 static DEFAULT_MIX_PORT: u16 = 1789;
 static DEFAULT_VERLOC_PORT: u16 = 1790;
@@ -38,6 +39,8 @@ pub(crate) enum Commands {
     Balance(balance::Balance),
     /// View, Claim, or Compound rewards
     Rewards(rewards::Rewards),
+    /// View, or Withdraw vested rewards
+    Vesting(vesting::Vesting),
     /// Create a new wallet
     Create(create::Create),
 }
@@ -66,5 +69,6 @@ pub(crate) async fn execute(
         Commands::SubmitTransaction(m) => submit::execute(m, network_info).await,
         Commands::Balance(m) => balance::execute(m, network_info).await,
         Commands::Rewards(m) => rewards::execute(m, network_info, wallet).await,
+        Commands::Vesting(m) => vesting::execute(m, network_info, wallet).await,
     }
 }
