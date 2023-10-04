@@ -183,7 +183,7 @@ mod tests {
         let args = Rewards {
             mixnode_identity: "HgtcRA3JF29NYgxgv9ysALjTF9dbnEr4b9HvmcmQN6fw".to_string(),
             operation: Operation::Balance(BalanceArgs {
-                account_address: "nymt129zh9a59lhp87sxf8ax8tljzsz2tn0yg2z0l30".to_string(),
+                account_address: "n10kgacxsykljsjz8w3aeukaqfykd3ntps8wn7zq".to_string(),
             }),
         };
 

@@ -47,13 +47,13 @@ pub(crate) async fn execute(args: &Account, network_info: NetworkInfo) {
 #[cfg(test)]
 mod tests {
     use crate::commands::account::*;
-    use network_defaults::all::Network::SANDBOX;
+    use network_defaults::all::Network::MAINNET;
 
     #[tokio::test]
     async fn test_account_info() {
         let args = Account {
             host: None,
-            account_id: "nymt17g7kpvh9fjg4ktpuznkuaefkj6yh8707evm66a".to_string(),
+            account_id: "n1ef8fjswyuxnv9779qfug042aca8heven66ptnx".to_string(),
             mix_port: None,
             verloc_port: None,
             http_api_port: None,
@@ -62,8 +62,8 @@ mod tests {
         execute(
             &args,
             NetworkInfo {
-                network_details: SANDBOX.details(),
-                chain_id: "nym-sandbox".to_string(),
+                network_details: MAINNET.details(),
+                chain_id: "nym-mixnet".to_string(),
             },
         )
         .await;

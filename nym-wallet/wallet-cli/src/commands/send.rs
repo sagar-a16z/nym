@@ -69,7 +69,8 @@ mod tests {
         let mnemonic = "drill poet latin puzzle fork lift rocket magic width hello radio glue loop electric jacket guide job goat dust provide input spoon wall thumb";
 
         let args = Send {
-            recipient: "nymt1g5vfckav6uwgayquwlfd4fca0kp74wllqnf500".to_string(),
+            token: "nym".to_string(),
+            recipient: "n10kgacxsykljsjz8w3aeukaqfykd3ntps8wn7zq".to_string(),
             amount: 1_000_000,
             sequence_number: 0,
             account_number: 450,

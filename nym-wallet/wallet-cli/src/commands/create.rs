@@ -2,7 +2,7 @@ use crate::NetworkInfo;
 use clap::Args;
 use std::fs::File;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use validator_client::nymd::wallet::DirectSecp256k1HdWallet;
 
 #[derive(Args, Clone)]
@@ -12,7 +12,7 @@ pub(crate) struct Create {
     words: Option<usize>,
 }
 
-pub(crate) fn execute(args: &Create, network_info: NetworkInfo) {
+pub(crate) fn execute(args: &Create, network_info: NetworkInfo) -> Option<PathBuf> {
     let prefix = network_info
         .network_details
         .chain_details
@@ -33,9 +33,11 @@ pub(crate) fn execute(args: &Create, network_info: NetworkInfo) {
                 account_id,
                 path.display()
             );
+            return Some(PathBuf::from(path));
         }
         Err(error) => {
             println!("Failed to create new Wallet: {}", error);
+            return None;
         }
     }
 }
@@ -49,16 +51,14 @@ mod tests {
     #[test]
     fn test_wallet_create() {
         let args = Create { words: Some(12) };
+        let network_info = NetworkInfo {
+            network_details: SANDBOX.details(),
+            chain_id: "nym-sandbox".to_string(),
+        };
+        let path = execute(&args, network_info);
 
-        execute(
-            &args,
-            NetworkInfo {
-                network_details: SANDBOX.details(),
-                chain_id: "nym-sandbox".to_string(),
-            },
-        );
         // Check that a wallet file was created
-        let file = File::open("nym_wallet_seed_phrase.txt");
+        let file = File::open(path.unwrap());
         assert!(file.is_ok());
         let mut mnemonic = String::new();
         assert!(file.unwrap().read_to_string(&mut mnemonic).is_ok());

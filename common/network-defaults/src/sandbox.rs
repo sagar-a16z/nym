@@ -3,28 +3,28 @@
 
 use crate::{DenomDetails, ValidatorDetails};
 
-pub(crate) const BECH32_PREFIX: &str = "nymt";
+pub(crate) const BECH32_PREFIX: &str = "n";
 
-pub const MIX_DENOM: DenomDetails = DenomDetails::new("unymt", "nymt", 6);
-pub const STAKE_DENOM: DenomDetails = DenomDetails::new("unyxt", "nyxt", 6);
+pub(crate) const MIX_DENOM: DenomDetails = DenomDetails::new("unym", "nym", 6);
+pub(crate) const STAKE_DENOM: DenomDetails = DenomDetails::new("unyx", "nyx", 6);
 
-pub(crate) const MIXNET_CONTRACT_ADDRESS: &str = "nymt1ghd753shjuwexxywmgs4xz7x2q732vcnstz02j";
-pub(crate) const VESTING_CONTRACT_ADDRESS: &str = "nymt14ejqjyq8um4p3xfqj74yld5waqljf88fn549lh";
 pub(crate) const BANDWIDTH_CLAIM_CONTRACT_ADDRESS: &str =
-    "nymt17p9rzwnnfxcjp32un9ug7yhhzgtkhvl9f8xzkv";
+    "n1pd7kfgvr5tpcv0xnlv46c4jsq9jg2r799xxrcwqdm4l2jhq2pjwqrmz5ju";
+pub(crate) const REWARDING_VALIDATOR_ADDRESS: &str =
+    "n1ahg0erc2fs6xx3j5m8sfx3ryuzdjh6kf6qm9plsf865fltekyrfsesac6a";
+pub(crate) const MIXNET_CONTRACT_ADDRESS: &str =
+    "n1xr3rq8yvd7qplsw5yx90ftsr2zdhg4e9z60h5duusgxpv72hud3sjkxkav";
+pub(crate) const VESTING_CONTRACT_ADDRESS: &str =
+    "n1unyuj8qnmygvzuex3dwmg9yzt9alhvyeat0uu0jedg2wj33efl5qackslz";
 pub(crate) const COCONUT_BANDWIDTH_CONTRACT_ADDRESS: &str =
-    "nymt1nz0r0au8aj6dc00wmm3ufy4g4k86rjzlgq608r";
-pub(crate) const MULTISIG_CONTRACT_ADDRESS: &str = "nymt1k8re7jwz6rnnwrktnejdwkwnncte7ek7kk6fvg";
-pub(crate) const _ETH_CONTRACT_ADDRESS: [u8; 20] =
-    hex_literal::hex!("8e0DcFF7F3085235C32E845f3667aEB3f1e83133");
-pub(crate) const _ETH_ERC20_CONTRACT_ADDRESS: [u8; 20] =
-    hex_literal::hex!("E8883BAeF3869e14E4823F46662e81D4F7d2A81F");
-pub(crate) const REWARDING_VALIDATOR_ADDRESS: &str = "nymt1jh0s6qu6tuw9ut438836mmn7f3f2wencrnmdj4";
+    "n16a32stm6kknhq5cc8rx77elr66pygf2hfszw7wvpq746x3uffylqkjar4l";
+pub(crate) const MULTISIG_CONTRACT_ADDRESS: &str =
+    "n14ph4e660eyqz0j36zlkaey4zgzexm5twkmjlqaequxr2cjm9eprqsmad6k";
 
 pub(crate) const STATISTICS_SERVICE_DOMAIN_ADDRESS: &str = "http://0.0.0.0";
 pub(crate) fn validators() -> Vec<ValidatorDetails> {
     vec![ValidatorDetails::new(
-        "https://sandbox-validator.nymtech.net",
-        Some("https://sandbox-validator.nymtech.net/api"),
+        "https://sandbox-validator1.nymtech.net",
+        Some("https://sandbox-nym-api1.nymtech.net/api"),
     )]
 }

@@ -115,7 +115,7 @@ pub(crate) async fn execute(
 
 #[cfg(test)]
 mod tests {
-    use crate::commands::rewards::*;
+    use crate::commands::vesting::*;
     use crate::commands::vesting::{Operation, WithdrawArgs};
     use network_defaults::all::Network::SANDBOX;
 
@@ -125,8 +125,11 @@ mod tests {
 
         let args = Vesting {
             operation: Operation::WithdrawVested(WithdrawArgs {
-                sequence_number: 0,
-                account_number: 450,
+                amount: 100,
+                nonce: NonceArgs {
+                    sequence_number: 0,
+                    account_number: 450,
+                },
             }),
         };
         let wallet = DirectSecp256k1HdWallet::from_mnemonic(
@@ -150,7 +153,7 @@ mod tests {
     async fn test_check_vested_balance() {
         let args = Vesting {
             operation: Operation::Balance(BalanceArgs {
-                account_address: "nymt129zh9a59lhp87sxf8ax8tljzsz2tn0yg2z0l30".to_string(),
+                account_address: "n10kgacxsykljsjz8w3aeukaqfykd3ntps8wn7zq".to_string(),
             }),
         };
 

@@ -56,7 +56,9 @@ pub(crate) async fn execute(
     wallet: Option<DirectSecp256k1HdWallet>,
 ) {
     match &args.command {
-        Commands::Create(m) => create::execute(m, network_info),
+        Commands::Create(m) => {
+            create::execute(m, network_info);
+        }
         Commands::BondOffline(m) => bond::execute(m, network_info, wallet.expect("Invalid Wallet")),
         Commands::SendOffline(m) => send::execute(m, network_info, wallet.expect("Invalid Wallet")),
         Commands::DelegateOffline(m) => {

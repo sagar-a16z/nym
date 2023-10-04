@@ -52,7 +52,7 @@ mod tests {
     #[tokio::test]
     async fn test_account_balance() {
         let args = Balance {
-            account_id: "nymt129zh9a59lhp87sxf8ax8tljzsz2tn0yg2z0l30".to_string(),
+            account_id: "n10kgacxsykljsjz8w3aeukaqfykd3ntps8wn7zq".to_string(),
         };
 
         execute(
